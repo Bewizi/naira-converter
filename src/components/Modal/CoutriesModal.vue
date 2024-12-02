@@ -1,7 +1,8 @@
 <script lang="ts" setup>
-import { computed, ref } from "vue";
-import axios from "axios";
+import { computed, ref, reactive } from "vue";
+import { onMounted } from "vue";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
@@ -12,68 +13,59 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "../ui/input";
 import { currencyToCountryMap } from "@/data";
+import { userateStore } from "@/stores/useRateStore";
+const store = userateStore();
 
-const searchQuery = ref("");
-const countriesNam = ref<{ [key: string]: any }>({});
-const selectedCountry = ref("USD");
-const isOpen = ref(false);
-
-const fetchData = async () => {
-  try {
-    const res = await axios.get("https://www.floatrates.com/daily/ngn.json");
-    countriesNam.value = res.data;
-    console.log(countriesNam.value);
-  } catch (e) {
-    console.error("Error Fetching Data:", e);
-  }
-};
-fetchData();
-
-const filteredCountries = computed(() => {
-  if (!searchQuery.value) return Object.values(countriesNam.value);
-
-  return Object.values(countriesNam.value).filter((country: any) =>
-    country.name?.toLowerCase().includes(searchQuery.value.toLowerCase()),
-  );
+onMounted(() => {
+  store.fetchData();
 });
 
 const getCountryCode = (currencyCode: string) => {
   return currencyToCountryMap[currencyCode.toUpperCase()] || "";
 };
 
-const handleClick = (countryName: string) => {
-  selectedCountry.value = countryName;
-  isOpen.value = false;
+const handleClick = (countrycode: string) => {
+  store.selectedCountry = countrycode;
+  store.getcountryRate(store.selectedCountry);
+  store.isOpen = false;
 };
 </script>
 
 <template>
-  <Dialog v-model:open="isOpen">
+  <Dialog v-model:open="store.isOpen">
     <DialogTrigger as-child>
-      <Button variant="outline" @click="isOpen = true">
-        {{ selectedCountry }}
+      <Skeleton class="h-8 w-20 rounded-xl" v-if="store.loadSkeleton" />
+      <Button
+        variant="outline"
+        v-else-if="store.loadSkeleton === false"
+        @click="store.isOpen = true"
+        class="bg-stone-950 hover:bg-stone-900 hover:text-neutral-200 border-green-600"
+      >
+        {{ store.selectedCountry }}
       </Button>
     </DialogTrigger>
     <DialogContent
-      class="sm:max-w-[500px] grid-rows-[auto_minmax(0,1fr)_auto] p-0 max-h-[90dvh]"
+      class="sm:max-w-[500px] grid-rows-[auto_minmax(0,1fr)_auto] p-4 max-h-[100dvh] bg-stone-950"
     >
       <DialogHeader class="p-6 pb-0">
-        <DialogTitle>Convert to Currency</DialogTitle>
+        <DialogTitle class="text-gray">Convert to Currency</DialogTitle>
         <DialogDescription>
           Select currency to compare to Nigeria price.
         </DialogDescription>
         <div class="my-2">
           <Input
-            v-model="searchQuery"
+            v-model="store.searchQuery"
             class="max-w-4xl"
             placeholder="Search for Currency..."
             type="text"
           />
         </div>
       </DialogHeader>
-      <div class="grid gap-4 py-2.5 px-6 overflow-y-auto">
-        <div class="flex flex-col max-h-[80dvh]">
-          <ul>
+      <div class="grid gap-4 overflow-y-auto border mx-1.5 rounded-xl">
+        <div
+          class="flex flex-col max-h-[80dvh] divide-y divide-slate-700 rounded-xl"
+        >
+          <!-- <ul>
             <li
               v-for="country in filteredCountries"
               :key="country"
@@ -87,9 +79,26 @@ const handleClick = (countryName: string) => {
                   class="rounded-full w-8 h-8"
                 />
               </span>
-              {{ country.name }}
+              {{ country.code }}
             </li>
-          </ul>
+          </ul> -->
+          <button
+            v-for="country in store.filteredCountries"
+            :key="country"
+            class="flex items-center px-2 py-2 gap-2 hover:bg-gray-900"
+            @click="handleClick(country.code)"
+          >
+            <span>
+              <img
+                :src="`https://flagcdn.com/w40/${getCountryCode(
+                  country.code
+                ).toLowerCase()}.png`"
+                alt="flag"
+                class="rounded-full w-6 h-6"
+              />
+            </span>
+            {{ country.code }}
+          </button>
         </div>
       </div>
     </DialogContent>

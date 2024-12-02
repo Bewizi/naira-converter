@@ -8,13 +8,16 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+
+import { Skeleton } from "@/components/ui/skeleton";
 import Button from './ui/button/Button.vue';
 import Input from './ui/input/Input.vue';
 import Label from './ui/label/Label.vue';
+import { userateStore } from '@/stores/useRateStore';
+const store = userateStore();
 
-const ngnInitialAmount = ref(0)
+const ngnInitialAmount = ref()
 const localizedAmount = ref(0)
-const currentRate = ref(1750)
 
 function clearInputs() {
     ngnInitialAmount.value = 0;
@@ -22,32 +25,38 @@ function clearInputs() {
 }
 
 watch(ngnInitialAmount, (newVal) => {
-    localizedAmount.value = newVal / currentRate.value
+    localizedAmount.value = newVal / store.inverseRate
 })
 
 watch(localizedAmount, (newVal) => {
-    ngnInitialAmount.value = newVal * currentRate.value
+    ngnInitialAmount.value = newVal * store.inverseRate
 })
+
+//issues
+// converter does not re-caculate values in the input after selcting a diffrent country
+// rounding up values in the input
+// focus input after selcting a country from the modal component - to the ngninitial
 
 </script>
 <template>
-        <Card class="max-w-xs mx-auto mb-8">
+    <Skeleton class="h-80 w-full rounded-xl max-w-xs mx-auto mb-8" v-if="store.loadSkeleton" />
+        <Card class="max-w-xs mx-auto mb-8 bg-stone-900 border-gray-600" v-else-if="store.loadSkeleton === false">
             <CardHeader>
-            <CardTitle>Currency Converter</CardTitle>
-            <CardDescription>Convert Nigerian NGN to USD</CardDescription>
+            <CardTitle class="text-white">Currency Converter</CardTitle>
+            <CardDescription>Convert Nigerian NGN to {{ store.selectedCountry }}</CardDescription>
             </CardHeader>
             <CardContent>
-                <div class="grid items-center w-full gap-4">
+                <div class="grid items-center w-full gap-4 text-white">
                     <div class="flex flex-col space-y-1.5">
-                        <Label for="ngn">NGN</Label>
-                        <Input id="ngn" type="number" v-model="ngnInitialAmount" />
+                        <Label for="ngn" class="text-white">NGN</Label>
+                        <Input id="ngn" type="number" v-model="ngnInitialAmount" class="bg-stone-900 border-gray-500"/>
                     </div>
                     <div class="flex flex-col space-y-1.5">
-                        <Label for="for">USD</Label>
-                        <Input id="for" type="number" v-model="localizedAmount"/>
+                        <Label for="for" class="text-white">{{ store.selectedCountry }}</Label>
+                        <Input id="for" type="number" v-model="localizedAmount" class="bg-stone-900 border-gray-500"/>
                     </div>
                     <div class="flex flex-col space-y-1.5">
-                        <Button variant="outline" @click="clearInputs">
+                        <Button variant="outline" @click="clearInputs" class="text-stone-900">
                             Clear
                         </Button>
                     </div>
