@@ -30,9 +30,8 @@ const fetchData = async () => {
 fetchData();
 
 const filteredCountries = computed(() => {
-  if (!searchQuery.value) {
-    return Object.values(countriesNam.value);
-  }
+  if (!searchQuery.value) return Object.values(countriesNam.value);
+
   return Object.values(countriesNam.value).filter((country: any) =>
     country.name?.toLowerCase().includes(searchQuery.value.toLowerCase()),
   );
